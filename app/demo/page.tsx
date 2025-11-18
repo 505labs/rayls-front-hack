@@ -12,6 +12,7 @@ import { AlertCircle, CheckCircle2, XCircle } from "lucide-react";
 
 export default function DemoPage() {
   const { primaryWallet, user } = useDynamicContext();
+  const walletConnected = (primaryWallet !== null || user)
   const { address } = useAccount();
   const [depositAmount, setDepositAmount] = useState("0.01");
   const [depositStatus, setDepositStatus] = useState<"idle" | "checking" | "failed" | "success">("idle");
@@ -23,7 +24,7 @@ export default function DemoPage() {
     abi: VAULT_ABI,
     functionName: "hasValidKYCNFT",
     args: address ? [address] : undefined,
-    query: { enabled: !!address && isAuthenticated },
+    query: { enabled: !!address && walletConnected },
   });
 
   const { writeContract, data: hash, isPending } = useWriteContract();
@@ -71,7 +72,7 @@ export default function DemoPage() {
     }
   }, [isSuccess]);
 
-  if (!isAuthenticated) {
+  if (!walletConnected) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <Navbar />
