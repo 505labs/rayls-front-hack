@@ -15,7 +15,7 @@ export default function Home() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-white/80 px-4 py-1 text-sm font-medium text-blue-700 shadow-sm">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              Tier 1 KYC credentials, ready in minutes
+              Tier 1 credentials, ready in minutes
             </div>
             <div className="space-y-6">
               <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold leading-tight tracking-tight text-slate-900">
@@ -31,7 +31,7 @@ export default function Home() {
                   size="lg"
                   className="text-lg px-10 py-6 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 transition-all duration-300 font-semibold"
                 >
-                  Get Tier 1 KYC in minutes →
+                  Launch Tier 1 KYC Dashboard →
                 </Button>
               </Link>
               <Link href="/demo">
