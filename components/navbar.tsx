@@ -17,6 +17,11 @@ export function Navbar() {
               Tier 1 KYC Dashboard
             </Button>
           </Link>
+          <Link href="/tier2">
+            <Button variant="ghost" className="text-gray-700 hover:text-gray-900 hover:bg-gray-100">
+              Tier 2 KYC
+            </Button>
+          </Link>
           <Link href="/demo">
             <Button variant="ghost" className="text-gray-700 hover:text-gray-900 hover:bg-gray-100">
               Demo

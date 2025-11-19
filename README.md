@@ -77,6 +77,7 @@ rayls-front/
 │   ├── api/
 │   │   └── verify-callback/    # Reclaim Protocol callback handler
 │   ├── dashboard/               # Tier 1 KYC Dashboard
+│   ├── tier2/                   # Tier 2 institutional dashboard
 │   ├── demo/                    # Vault deposit demo
 │   ├── layout.tsx               # Root layout with providers
 │   ├── page.tsx                 # Landing page
@@ -100,10 +101,11 @@ rayls-front/
 1. **Landing Page** - Users land on the homepage
 2. **Connect Wallet** - Users connect using Dynamic wallet in the navbar
 3. **Tier 1 KYC Dashboard** - View available KYC verification collections
-4. **Verify** - Click "Verify Now" to initiate Reclaim Protocol verification
-5. **Receive NFT** - Upon successful verification, receive KYC NFT
-6. **View NFTs** - See verified NFTs with beautiful 3D passport-style cards
-7. **Demo** - Use the demo vault to deposit ETH (requires KYC NFT)
+4. **Tier 2 KYC Dashboard** - Upload sovereign KYC PDFs, run liveliness checks, send encrypted dossiers to tenants
+5. **Verify** - Click "Verify Now" to initiate Reclaim Protocol verification
+6. **Receive NFT** - Upon successful verification, receive KYC NFT
+7. **View NFTs** - See verified NFTs with beautiful 3D passport-style cards
+8. **Demo** - Use the demo vault to deposit ETH (requires KYC NFT)
 
 ## Verification Methods
 
@@ -118,8 +120,9 @@ The system is designed to be extensible for additional verification methods.
 1. Navigate to the Demo page
 2. Attempt to deposit ETH (will fail without KYC NFT)
 3. Go to the Tier 1 KYC Dashboard and verify identity
-4. Return to Demo page
-5. Successfully deposit ETH with KYC NFT
+4. (Optional) Complete Tier 2 onboarding for partner banks
+5. Return to Demo page
+6. Successfully deposit ETH with KYC NFT
 
 ## Contract Integration
 

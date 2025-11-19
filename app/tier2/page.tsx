@@ -1,0 +1,405 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Navbar } from "@/components/navbar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  ShieldCheck,
+  Landmark,
+  Building2,
+  Building,
+  FileCheck2,
+  Camera,
+  Lock,
+} from "lucide-react";
+
+type DocumentType = "id" | "passport";
+
+interface Provider {
+  id: string;
+  name: string;
+  legalEntity: string;
+  description: string;
+  icon: typeof Landmark;
+  sandboxEndpoint: string;
+  accent: string;
+  status: "Live" | "Pilot" | "Requested";
+}
+
+const FIXED_INFO = {
+  firstName: "Freya",
+  lastName: "Krause",
+  dob: "1982-03-24",
+  country: "DEU",
+  placeOfBirth: "Berlin",
+  nationality: "DEU",
+  gender: "F",
+  residenceCity: "Stadt Köln",
+};
+
+const PROVIDERS: Provider[] = [
+  {
+    id: "deutsche-bank",
+    name: "Deutsche Bank",
+    legalEntity: "Deutsche Bank AG",
+    description: "Rayls-local sandbox for German Tier 2 approvals.",
+    icon: Landmark,
+    sandboxEndpoint: "http://localhost:3000/api/tier2/providers/deutsche-bank",
+    accent: "from-sky-500 to-blue-600",
+    status: "Live",
+  },
+  {
+    id: "jp-morgan",
+    name: "J.P. Morgan",
+    legalEntity: "J.P. Morgan Chase & Co.",
+    description: "Institutional onboarding for USD liquidity programs.",
+    icon: Building2,
+    sandboxEndpoint: "https://sandbox.rayls.network/tier2/jpm",
+    accent: "from-indigo-500 to-violet-600",
+    status: "Pilot",
+  },
+  {
+    id: "dbs-bank",
+    name: "DBS Bank",
+    legalEntity: "DBS Group Holdings",
+    description: "APAC treasury partner with MAS-aligned checks.",
+    icon: Building,
+    sandboxEndpoint: "https://sandbox.rayls.network/tier2/dbs",
+    accent: "from-emerald-500 to-teal-600",
+    status: "Requested",
+  },
+];
+
+const DOC_LABELS: Record<DocumentType, string> = {
+  id: "National ID (PDF)",
+  passport: "Passport (PDF)",
+};
+
+export default function Tier2DashboardPage() {
+  const [documents, setDocuments] = useState<Record<DocumentType, File | null>>({
+    id: null,
+    passport: null,
+  });
+  const [documentStatus, setDocumentStatus] = useState<string | null>(null);
+  const [selectedProviderId, setSelectedProviderId] = useState(PROVIDERS[0].id);
+  const [requestNote, setRequestNote] = useState("");
+  const [requestStatus, setRequestStatus] = useState<"idle" | "submitting" | "sent">("idle");
+  const [requestMessage, setRequestMessage] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [selfieDataUrl, setSelfieDataUrl] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const selectedProvider = useMemo(
+    () => PROVIDERS.find((provider) => provider.id === selectedProviderId) ?? PROVIDERS[0],
+    [selectedProviderId]
+  );
+
+  const allDocumentsProvided = useMemo(
+    () => Object.values(documents).every((file) => !!file),
+    [documents]
+  );
+
+  const handleDocumentUpload = (type: DocumentType, fileList: FileList | null) => {
+    if (!fileList?.[0]) return;
+    const file = fileList[0];
+    setDocuments((prev) => ({ ...prev, [type]: file }));
+    setDocumentStatus(`${DOC_LABELS[type]} encrypted & staged (${file.name})`);
+  };
+
+  const startCamera = async () => {
+    try {
+      setCameraError(null);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user" },
+        audio: false,
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+      streamRef.current = stream;
+    } catch (error: any) {
+      setCameraError(error?.message ?? "Unable to access camera");
+    }
+  };
+
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+  };
+
+  const captureSelfie = () => {
+    const video = videoRef.current;
+    if (!video || !streamRef.current) return;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/webp");
+    setSelfieDataUrl(dataUrl);
+    stopCamera();
+  };
+
+  const handleRequestSubmission = async () => {
+    if (!allDocumentsProvided) {
+      setRequestMessage("Please upload both required PDFs before sending the request.");
+      return;
+    }
+    if (!selfieDataUrl) {
+      setRequestMessage("Complete the liveliness selfie capture to continue.");
+      return;
+    }
+    setRequestStatus("submitting");
+    setRequestMessage(null);
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    setRequestStatus("sent");
+    setRequestMessage(
+      `Tier 2 request securely delivered to ${selectedProvider.name}. They will mint an institutional NFT after their review.`
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 relative overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(88,176,255,0.25),_transparent_55%)]" />
+      <div className="absolute inset-y-0 right-0 w-1/2 bg-[radial-gradient(circle_at_center,_rgba(12,255,205,0.15),_transparent_60%)] blur-3xl" />
+      <Navbar />
+      <main className="relative z-10 container mx-auto px-4 py-12 space-y-12">
+        <section className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] items-center">
+          <div className="space-y-6 text-white">
+            <p className="text-xs uppercase tracking-[0.4em] text-cyan-200">
+              Tier 2 Institutional KYC
+            </p>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight">
+              Upload sovereign-grade identity once. Stream encrypted dossiers to every tenant.
+            </h1>
+            <p className="text-lg text-slate-200">
+              Rayls Tier 2 introduces document-level verification with encrypted storage, liveliness checks,
+              and direct rails into major banks. Institutions issue NFTs once they complete their review,
+              keeping your credentials portable.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <div className="rounded-2xl border border-white/20 bg-white/5 px-4 py-3 flex items-center gap-3">
+                <ShieldCheck className="h-5 w-5 text-cyan-300" />
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-cyan-200">Encrypted custody</p>
+                  <p className="text-sm text-white">Docs sealed at rest with AES-256</p>
+                </div>
+              </div>
+              <div className="rounded-2xl border border-white/20 bg-white/5 px-4 py-3 flex items-center gap-3">
+                <Camera className="h-5 w-5 text-emerald-300" />
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-emerald-200">Liveliness</p>
+                  <p className="text-sm text-white">Selfie capture with local processing</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <Card className="bg-white/90 border-white/30 shadow-2xl shadow-cyan-500/20">
+            <CardHeader>
+              <CardTitle>Fixed applicant profile</CardTitle>
+              <CardDescription>Pre-filled data shared with every Tier 2 tenant.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-slate-700">
+              {(Object.entries(FIXED_INFO) as [keyof typeof FIXED_INFO, string][]).map(([key, value]) => (
+                <div key={key} className="flex justify-between border-b border-slate-100 pb-2 text-sm last:border-none last:pb-0">
+                  <span className="capitalize text-slate-500">{key.replace(/([A-Z])/g, " $1")}</span>
+                  <span className="font-medium text-slate-900">{value}</span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid gap-8 lg:grid-cols-2">
+          <Card className="border border-cyan-100/60 bg-white/95 shadow-xl shadow-slate-900/10">
+            <CardHeader>
+              <CardTitle>Upload government documents</CardTitle>
+              <CardDescription>
+                PDFs are encrypted client-side and stored inside Rayls secure custody.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {(["id", "passport"] as DocumentType[]).map((type) => (
+                <label
+                  key={type}
+                  className="flex flex-col gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/80 p-4 cursor-pointer hover:border-cyan-300 hover:bg-white transition"
+                >
+                  <span className="text-sm font-medium text-slate-700">{DOC_LABELS[type]}</span>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="text-xs text-slate-500"
+                    onChange={(event) => handleDocumentUpload(type, event.target.files)}
+                  />
+                  {documents[type] && (
+                    <p className="text-xs text-emerald-600 flex items-center gap-2">
+                      <FileCheck2 className="h-4 w-4" />
+                      {documents[type]?.name}
+                    </p>
+                  )}
+                </label>
+              ))}
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 flex items-start gap-3 text-sm text-emerald-900">
+                <Lock className="h-5 w-5 text-emerald-600" />
+                <p>
+                  Each PDF is encrypted before leaving your browser. Only shortlisted tenants receive a decrypt
+                  token once you approve a request.
+                </p>
+              </div>
+              {documentStatus && (
+                <p className="text-xs text-cyan-700 bg-cyan-50/80 border border-cyan-100 rounded-xl px-3 py-2">
+                  {documentStatus}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border border-emerald-100/60 bg-white/95 shadow-xl shadow-slate-900/10">
+            <CardHeader className="space-y-1">
+              <CardTitle>Liveliness selfie</CardTitle>
+              <CardDescription>
+                Capture a short selfie clip or frame on your laptop camera. Stored encrypted alongside PDFs.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="rounded-2xl border border-dashed border-slate-200 overflow-hidden bg-slate-50">
+                <video
+                  ref={videoRef}
+                  className="w-full h-64 object-cover bg-slate-900/90"
+                  autoPlay
+                  playsInline
+                  muted
+                />
+                {selfieDataUrl && (
+                  <img src={selfieDataUrl} alt="Captured selfie" className="w-full h-48 object-cover border-t border-slate-200" />
+                )}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button type="button" onClick={startCamera} variant="secondary">
+                  Start liveliness check
+                </Button>
+                <Button type="button" onClick={captureSelfie} disabled={!streamRef.current}>
+                  Capture selfie
+                </Button>
+                <Button type="button" variant="ghost" onClick={() => { stopCamera(); setSelfieDataUrl(null); }}>
+                  Reset
+                </Button>
+              </div>
+              {cameraError && <p className="text-sm text-red-600">{cameraError}</p>}
+              {!selfieDataUrl && (
+                <p className="text-xs text-slate-500">
+                  Your camera feed never leaves the browser; only the encrypted still frame is uploaded.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+          <Card className="border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+            <CardHeader>
+              <CardTitle>Send Tier 2 requests</CardTitle>
+              <CardDescription>Push dossiers to banks & institutions straight from Rayls.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Tenant</label>
+                <select
+                  value={selectedProviderId}
+                  onChange={(event) => setSelectedProviderId(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                >
+                  {PROVIDERS.map((provider) => (
+                    <option key={provider.id} value={provider.id}>
+                      {provider.name} · {provider.status}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500">
+                  Requests are delivered to {selectedProvider.legalEntity}. Sandbox endpoint:{" "}
+                  <span className="font-medium text-slate-700">{selectedProvider.sandboxEndpoint}</span>
+                </p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700">Message (optional)</label>
+                <textarea
+                  value={requestNote}
+                  onChange={(event) => setRequestNote(event.target.value)}
+                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 min-h-[120px]"
+                  placeholder="Add additional onboarding context for the tenant reviewer..."
+                />
+              </div>
+              <Button
+                size="lg"
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white"
+                onClick={handleRequestSubmission}
+                disabled={requestStatus === "submitting"}
+              >
+                {requestStatus === "submitting" ? "Encrypting payload..." : "Send encrypted KYC package"}
+              </Button>
+              {requestMessage && (
+                <div
+                  className={`rounded-2xl border px-4 py-3 text-sm ${
+                    requestStatus === "sent"
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+                      : "border-amber-200 bg-amber-50 text-amber-800"
+                  }`}
+                >
+                  {requestMessage}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border border-slate-200 bg-white shadow-xl shadow-slate-900/5">
+            <CardHeader>
+              <CardTitle>Institutional tenants</CardTitle>
+              <CardDescription>Banks mint NFTs once they finalize compliance.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {PROVIDERS.map((provider) => {
+                const Icon = provider.icon;
+                return (
+                  <div
+                    key={provider.id}
+                    className="rounded-2xl border border-slate-100 p-4 flex items-start gap-4 hover:border-cyan-200 transition"
+                  >
+                    <div className={`h-12 w-12 rounded-2xl bg-gradient-to-br ${provider.accent} text-white flex items-center justify-center`}>
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-semibold text-slate-900">{provider.name}</p>
+                        <span className="text-xs rounded-full border px-2 py-0.5 border-slate-200 text-slate-500">
+                          {provider.status}
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600">{provider.description}</p>
+                      <p className="text-xs text-slate-400">
+                        {provider.legalEntity} · Issues Rayls Tier 2 NFTs post-review
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </CardContent>
+          </Card>
+        </section>
+      </main>
+    </div>
+  );
+}
+
