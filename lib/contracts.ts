@@ -1,6 +1,7 @@
 import { Address } from "viem";
 import KYCVerifierABI from "@/abis/KYCVerifier.json";
 import KYCNFTABI from "@/abis/KYCNFT.json";
+import KYCPoolABI from "@/abis/KYCPool.json";
 
 // Contract addresses from addresses.txt
 export const CLAIMS_LIBRARY_ADDRESS: Address =
@@ -21,6 +22,7 @@ export const VAULT_CONTRACT_ADDRESS: Address =
 // ABIs from JSON files
 export const KYC_VERIFIER_ABI = KYCVerifierABI;
 export const NFT_ABI = KYCNFTABI;
+export const KYC_POOL_ABI = KYCPoolABI;
 
 // Legacy ABI for NFT contract (simplified version - use NFT_ABI instead)
 export const NFT_ABI_LEGACY = [
